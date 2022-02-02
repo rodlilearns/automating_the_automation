@@ -1,0 +1,74 @@
+---
+- name: Automating the Automation
+  hosts: localhost
+
+  vars_prompt:
+
+    - name: aap_admin_password
+      prompt: What is your aap admin password?
+      private: yes
+      encrypt: sha512_crypt
+      confirm: yes
+      salt_size: 7
+
+    - name: ssh_private_key_passphrase
+      prompt: What is your ssh private key passphrase?
+      private: yes
+      encrypt: sha512_crypt
+      confirm: yes
+      salt_size: 7
+
+  vars:
+
+    scm_url: 
+
+  tasks:
+
+    - name: Create organization
+      organization:
+        name: CSIRO
+        description: CSIRO organisation
+        state: present
+        controller_config_file: "~/tower_cli.cfg"
+
+    - name: Create team
+      team:
+        name: Data Team
+        description: CSIRO Data Team
+        organization: CSIRO
+        state: present
+        controller_config_file: "~/tower_cli.cfg"
+
+    - name: Create a valid SCM credential from a private_key file
+      credential:
+        name: Bitbucket Credential
+        organization: CSIRO
+        state: present
+        credential_type: Source Control
+        inputs:
+          username: admin
+          password: secret
+          ssh_key_data: "{{ lookup('file', '/tmp/id_rsa.pub') }}"
+          ssh_key_unlock: "{{ ssh_private_key_passphrase }}"
+
+    - name: Add project
+      project:
+        name: RHEL SOE Automation Pipeline
+        description: Automate the creation of a RHEL standard operating environment.
+        organization: CSIRO
+        scm_url: "{{ scm_url }}"
+        scm_type: 
+        credential: Bitbucket Credential
+        state: present
+        controller_config_file: "~/tower_cli.cfg"
+
+    # - name: Set all the LDAP Auth Bind Params
+    #   settings:
+    #     settings:
+    #       AUTH_LDAP_BIND_PASSWORD: "password"
+    #       AUTH_LDAP_USER_ATTR_MAP:
+    #         email: "mail"
+    #         first_name: "givenName"
+    #         last_name: "surname"
+
+    
